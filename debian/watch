@@ -1,0 +1,3 @@
+version=3
+opts=filenamemangle=s/.+\/v?(\d\S+)\.tar\.gz/libaec-$1\.tar\.gz/ \
+  https://github.com/MathisRosenhauer/libaec/tags .*/v?(\d\S+)\.tar\.gz

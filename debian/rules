@@ -1,0 +1,17 @@
+#!/usr/bin/make -f
+
+# The magic debhelper  rule
+%:
+	dh $@
+
+# To enable all, uncomment following line
+DEB_BUILD_MAINT_OPTIONS:= hardening=+all
+export DEB_BUILD_MAINT_OPTIONS
+
+override_dh_autoreconf:
+	dh_autoreconf --as-needed
+	cp debian/test-data/* tests
+
+override_dh_auto_clean:
+	rm -f tests/*.zip
+	dh_auto_clean
