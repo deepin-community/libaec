@@ -6,7 +6,7 @@ Build-Depends: debhelper-compat (= 13),
  dh-buildinfo,
  unzip
 Rules-Requires-Root: no
-Standards-Version: 4.6.0
+Standards-Version: 4.6.2
 Homepage: https://gitlab.dkrz.de/k202009/libaec
 Vcs-Browser: https://salsa.debian.org/science-team/libaec
 Vcs-Git: https://salsa.debian.org/science-team/libaec.git -b debian/latest
@@ -57,12 +57,3 @@ Description: Development files for the Adaptive Entropy Coding library
  simulations. While floating point representations are not directly
  supported, they can also be efficiently coded by grouping exponents
  and mantissa.
-
-Package: libaec-tools
-Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends}
-Description: Adaptive Entropy Coding library (utilities)
- Libaec provides fast lossless compression of 1 up to 32 bit wide
- signed or unsigned integers (samples).
- .
- This package provides the aec compression utility.

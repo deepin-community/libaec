@@ -91,6 +91,9 @@ output goes into `dest`.
 ...
 ```
 
+See [libaec.h](include/libaec.h) for a detailed description of all
+relevant structure members and constants.
+
 `block_size` can vary from 8 to 64 samples. Smaller blocks allow the
 compression to adapt more rapidly to changing source
 statistics. Larger blocks create less overhead but can be less
@@ -148,20 +151,25 @@ are no alignment requirements for these buffers.
 ### Flushing:
 
 `aec_encode` can be used in a streaming fashion by chunking input and
-output and specifying `AEC_NO_FLUSH`. The function will return if either
-the input runs empty or the output buffer is full. The calling
-function can check `avail_in` and `avail_out` to see what occurred. The
-last call to `aec_encode()` must set `AEC_FLUSH` to drain all
-output. [aec.c](src/aec.c) is an example of streaming usage of encoding and
-decoding.
+output and specifying `AEC_NO_FLUSH`. The function will return if
+either the input runs empty or the output buffer is full. The calling
+function can check `avail_in` and `avail_out` to see what
+occurred. The last call to `aec_encode()` must set `AEC_FLUSH` to
+drain all output. [graec.c](src/graec.c) is an example of streaming
+usage of encoding and decoding.
 
 ### Output:
 
 Encoded data will be written to the buffer submitted with
 `next_out`. The length of the compressed data is `total_out`.
 
-See libaec.h for a detailed description of all relevant structure
-members and constants.
+In rare cases, like for random data, `total_out` can be larger than
+the size of the input data `total_in`. The following should hold true
+even for pathological cases.
+
+```
+total_out <= total_in * 67 / 64 + 256
+```
 
 
 ## Decoding
@@ -210,12 +218,120 @@ The actual values of coding parameters are in fact only relevant for
 efficiency and performance. Data integrity only depends on consistency
 of the parameters.
 
-The exact length of the original data is not preserved and must also be
-transmitted out of band. The decoder can produce additional output
+The exact length of the original data is not preserved and must also
+be transmitted out of band. The decoder can produce additional output
 depending on whether the original data ended on a block boundary or on
 zero blocks. The output data must therefore be truncated to the
 correct length. This can also be achieved by providing an output
 buffer of just the correct length.
+
+### Decoding data ranges
+
+The Libaec library has functionality that allows individual data areas
+to be decoded without having to decode the entire file. This allows
+efficient access to the data.
+
+This is possible because AEC-encoded data consists of independent
+blocks. It is, therefore, possible to decode individual blocks if
+their offsets are known. If the preprocessor requires reference
+samples, then decoding can commence only at blocks containing a
+reference sample. The Libaec library can capture the offsets when
+encoding or decoding the data and make them available to the user.
+
+The following example shows how to obtain the offsets.
+
+```c
+#include <libaec.h>
+
+...
+    struct aec_stream strm;
+    int32_t *source;
+    unsigned char *dest;
+    size_t count_offsets;
+    size_t *offsets;
+
+    strm.bits_per_sample = 32;
+    strm.block_size = 16;
+    strm.rsi = 128;
+    strm.flags = AEC_DATA_SIGNED | AEC_DATA_PREPROCESS;
+    strm.next_in = (unsigned char *)source;
+    strm.avail_in = source_length * sizeof(int32_t);
+    strm.next_out = dest;
+    strm.avail_out = dest_length;
+    if (aec_encode_init(&strm) != AEC_OK)
+        return 1;
+    /* Enable RSI offsets */
+    if (aec_encode_enable_offsets(&strm) != AEC_OK)
+        return 1;
+    if (aec_encode(&strm, AEC_FLUSH) != AEC_OK)
+        return 1;
+    /* Count RSI offsets */
+    if (aec_encode_count_offsets(&strm, &count_offsets) != AEC_OK)
+        return 1;
+    offsets = malloc(count_offsets * sizeof(*offsets));
+    /* Get RSI offsets */
+    if (aec_encode_get_offsets(&strm, offsets, offsets_count) != AEC_OK)
+        return 1;
+
+    aec_encode_end(&strm);
+    free(offsets);
+...
+```
+
+The offsets can then be used to decode ranges of data. The procedure
+is similar to the previous section, but use aec_decode_range() instead
+of aec_decode() and pass the offsets and the range as parameters. The
+decoded ranges are written to the buffer as a stream. When decoding
+the ranges into the individual buffers, set strm.total_out to zero.
+
+```c
+#include <libaec.h>
+
+...
+    struct aec_stream strm;
+    unsigned char *source;
+    int32_t *dest;
+    /* Suppose we got the offsets from the previous step */
+    size_t count_offsets;
+    size_t *offsets;
+
+    strm.bits_per_sample = 32;
+    strm.block_size = 16;
+    strm.rsi = 128;
+    strm.flags = AEC_DATA_SIGNED | AEC_DATA_PREPROCESS;
+    strm.next_in = (unsigned char *)source;
+    strm.avail_in = source_length * sizeof(int32_t);
+    strm.next_out = dest;
+    strm.avail_out = dest_length;
+
+    if (aec_decode_init(&strm))
+        return 1;
+
+    /* Decode data as stream of ranges*/
+    if (aec_decode_range(&strm, offsets, count_offsets, 12, 16);
+        return 1;
+    if (aec_decode_range(&strm, offsets, count_offsets, 244, 255);
+        return 1;
+
+    /* Decode data ranges to individual buffers */
+    strm.avail_out = 12
+    unsigned char buf_a[strm.avail_out];
+    strm.next_out = buf_a;
+    strm.total_out = 0;
+    if (aec_decode_range(&strm, offsets, count_offsets, 12, strm.avail_out);
+        return 1;
+
+    strm.avail_out = 255;
+    unsigned char buf_b[strm.avail_out];
+    strm.next_out = buf_b;
+    strm.total_out = 0;
+    if (aec_decode_range(&strm, offsets, count_offsets, 244, strm.avail_out);
+        return 1;
+
+    aec_decode_end(&strm);
+...
+```
+
 
 ## References
 

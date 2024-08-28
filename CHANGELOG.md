@@ -1,6 +1,39 @@
 # libaec Changelog
 All notable changes to libaec will be documented in this file.
 
+## [1.1.3] - 2024-03-21
+
+### Fixed
+- Compiler warnings
+
+
+## [1.1.2] - 2023-10-04
+
+### Fixed
+- Compile issue with MSVC
+
+## [1.1.1] - 2023-09-29
+
+### Fixed
+- Offsets when encoding by Eugen Betke
+
+## [1.1.0] - 2023-08-21 (not released)
+
+### Changed
+- Rename aec executable to graec. This avoids a name clash with the
+  library itself in cmake builds using the Ninja
+  generator. Furthermore, the executable and its manual page will not
+  be installed any more since it is mainly used for internal testing
+  and benchmarking.
+
+- The include file libaec.h now contains version information.
+
+### Added
+- Support for decoding data ranges by Eugen Betke. You can now start
+  decoding at previously noted offsets of reference samples. New API
+  functions allow you to extract possible offsets and decode ranges
+  from encoded data.
+
 ## [1.0.6] - 2021-09-17
 
 ### Changed
