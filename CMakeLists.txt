@@ -1,8 +1,5 @@
 cmake_minimum_required(VERSION 3.13...3.19)
-project(libaec LANGUAGES C VERSION 1.0.6)
-
-# Automatically export symbols for Windows DLLs
-set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
+project(libaec LANGUAGES C VERSION 1.1.3)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_VISIBILITY_PRESET hidden)
@@ -36,7 +33,12 @@ endif()
 # Communicate findings to code. Has to be compatible with autoconf's config.h.
 configure_file(
   "cmake/config.h.in"
-  "${CMAKE_CURRENT_BINARY_DIR}/config.h")
+  "${CMAKE_CURRENT_BINARY_DIR}/include/config.h")
+
+# Create libaec.h with current version information
+configure_file(
+  "include/libaec.h.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/include/libaec.h")
 
 add_subdirectory(src)
 if(BUILD_TESTING)
@@ -89,6 +91,7 @@ endif()
 set(CPACK_SOURCE_IGNORE_FILES
     /.git
     /.*build.*
+    /*.cache
     .*~
     .*\#.*\#
     \..*\#.*)
